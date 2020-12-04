@@ -1,0 +1,183 @@
+---
+title: "BIO8070 Meta-analysis graphics"
+subtitle: Additional plots, and extracting data from pdf graphs
+output:
+  word_document:
+     reference_docx: template.docx
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+We have covered some basic graphics in meta-analysis using the `metafor` package, including PRISMA plots to illustrate the processes in a systematic review, plus the use of "forest plots" to quickly show the results of a meta-analysis.  In this practical we will make use of the `PRISMAstatement` package, to quickly produce a PRISMA diagram, and also use the `metafor` package to improve the readability of the basic forest plot.  Finally, we will use `metagear` to extract numbers out of graphs, particularly scatter plots and bar charts.  This can be useful where a published paper has graphs, but does not provide the summary tables needed to carry out a meta-analysis. *Note*: PRISMA diagrams can be produced in Powerpoint if you prefer, but Powerpoint will not automatically check for numerical errors. `metagear` can also produce PRISMA diagrams, but on some screens its display can be distorted.
+
+# Installing PRISMAstatement and metagear packages
+The `prismaStatement` in installed and loaded in the usual way, but `metagear` uses an advanced graphics package called `EBImage` which is part of the R Bioconductor project, for bioinformatics.  As such the installation of EBImage is very slightly different from most R packages:
+
+```{r installing metagear, eval=FALSE}
+# Install PRISMAstatement as usual
+install.packages("PRISMAstatement")
+
+# Install the BiocManager package which is used to install from Bioconductor 
+# If you are prompted to update a large number of packages select `n`
+install.packages("BiocManager")
+BiocManager::install("EBImage")
+
+# then install metagear; if prompted to install from source select n
+install.packages("metagear")
+```
+
+Once you have installed the packages, you can load them up, along with the metafor and tidyverse packages, with the `library` command as usual. On first use of `library(metagear)` you may receive a prompt asking whether you want to install gtk+ packages; click install (takes a few minutes). 
+
+```{r load metagear, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(PRISMAstatement)
+library(metafor)
+library(metagear)
+```
+
+# PRISMA diagrams
+Whilst you can easily use Powerpoint to create PRISMA diagrams, the PRISMAstatement package tries to set them out using the strict rules recommended in the PRISMA reporting guidelines.  I will base my diagram on the numbers that I obtained for my Endnote screening of the literature; your numbers will be similar, but not identical.  Rather than typing the following directly into an RStudio Console, create a new R Script to enter your code, as you learnt in the first practical:
+
+```{r basic PRISMA, eval=FALSE}
+prisma(found = 298,             # Total WoS and Scopus
+       found_other = 0,         # Grey literature, government reports etc.
+       no_dupes = 242,          # Number after duplicates removed
+       screened = 242,          # Titles and abstracts screened
+       screen_exclusions = 195, # Not relevant based on titles, abstracts
+       full_text = 47,          # Full text checked
+       full_text_exclusions = 2,# Full text not available or unsuitable 
+       qualitative = 45,        # Available for systematic review 
+       quantitative = 9,        # For meta-analysis (if relevant)
+       width = 800, height = 800)
+```
+![](PRISMA.PNG)
+
+If you have any problems using the `PRISMAstatement` package, then feel free to use Powerpoint instead to create and annotate the diagrams. Note the `metagear` package also allows you to produce PRISMA diagrams via the `plot_PRISMA` function and you may prefer to use that.
+
+# Improved forest plots
+You looked at some forest plots when you began using the `metafor` package, but their basic output is a little difficult to interpret.  For example, the individual studies are labelled "Study 1, Study 2...etc."  Let's re-run the first example that you did, using Borenstein's quantitative dataset, with standardised mean differences.  You can type in the following, although if you have saved the commands for your previous analysis, you will find it easier to copy and paste the commands:
+
+```{r basic metafor analysis, message=FALSE, fig.width=7.5}
+# Continuous data
+continuous_dat <- read_csv("Borenstein_p88.csv")
+continuous_eff <- escalc(measure="SMD", m1i=T_mean, sd1i=T_SD, n1i=T_n,
+                         m2i=C_mean, sd2i=C_SD, n2i=C_n, data=continuous_dat)
+continuous_fixed_rma <- rma(yi, vi, data=continuous_eff, method="FE")
+
+forest(continuous_fixed_rma, showweights = TRUE)
+```
+
+I find it useful to display the weights in the plots, hence the option above.  To display the actual study names, modify your script as follows, so that the `rma` function calls the study-label or `slab` option:
+
+```{r forest with study names, fig.width=7.5}
+continuous_fixed_rma <- rma(yi, vi, data=continuous_eff, method="FE", slab=Study)
+
+forest(continuous_fixed_rma, showweights = TRUE)
+text(x = -2.5, y = 8, "Author(s)", pos = 4)
+text(x = 1,    y = 8, "Weight", pos=4)
+text(x = 2,    y = 8, "SMD [95% CI]", pos=4)
+```
+
+It can sometimes take a bit of trial and error to place the Author names in the correct x- and y-coordinate space on the plot.  The `pos=4` option positions the label to the right of the x and y-coordinates.  You can change the name to "Author(s) and year" if you wish.
+
+# Funnel plots
+Funnel plots can sometimes be useful to indicate any bias in the publications, typically on the basis of sample size.  Funnel plots have an x-axis of effect size, and a y-axis of standard error, but the latter is reversed, so that larger studies with smaller SE tend to be found near the top of the plot, and smaller studies with larger SE's lower down.  Sometimes scientists are guilty of a "bottom-drawer" effect, in which small studies with results that do not accord with other scientific literature are not published, but remain hidden in the bottom drawer of the filing cabinet.
+
+It is easy to use `metafor` to create funnel plots.  They are most useful when there are a reasonable number of studies to select for the meta-analysis, so we will use one of the in-built datasets, calculating Odds Ratios for a simple Fixed Effect model, to demonstrate funnel plots:
+
+```{r basic funnel plot}
+res <- rma(yi, vi, data=dat.hackshaw1998, measure="OR", method="FE")
+
+funnel(res)
+```
+
+Sometimes it is useful to extend the funnel plot, to show the 90%, 95% and 99% regions on the graph. Note that the vertical line is now centred on 0 (no effect) rather than the observed effect-size. Studies in white are at P > 0.10, studies in gray are at P 0.10 to 0.05, and studies in the dark gray at P 0.05 to 0.01. Studies outside the funnel are at P < 0.01.
+
+```{r contour enhanced funnel}
+funnel(res, level=c(90, 95, 99), shade=c("white", "gray", "darkgray"), refline=0)
+```
+
+# Scraping data from scatterplots using metagear
+Sometimes a paper will contain a graph that has the raw data, but not in numerical form, and you need to be able to calculate for example the correlation coefficient, or the means and standard deviations.  Download the file `Kam_et_al_2003_Fig2.jpeg` from the Blackboard website; it is an example file used in the `metagear` online tutorial:
+
+```{r load and display }
+# Note that R is case-sensitive, and image files might be JPEG, jpeg, jpg etc.
+# If you have problems reading the file check your session, and the filename
+Kam_et_al_2003_Fig2 <- figure_read("Kam_et_al_2003_Fig2.jpg")
+figure_display(Kam_et_al_2003_Fig2)
+```
+
+You can see that this is a scatter plot, with a fitted regression line and error bars, but we do not actually know the values for the regression; you might want to know the correlation coefficient for example, to undertake the type of analysis done in `metafor` in your earlier practical.  The `figure_scatterPlot` will try and scrape the data from the image file:
+
+```{r scrape from Kam et al}
+raw_data <- figure_scatterPlot("Kam_et_al_2003_Fig2.jpg")
+```
+
+The image is redisplayed, with colours to indicate that the axes have been correctly detected, and the points are highlighted.  Several points are highlighted in a different colour, to indicate that `metagear` has had problems separating possible clusters (the original paper had 51 data points, whereas `metagear` detects 49).  The raw_data table contains the x and y-values, plus a flag to indicate which points might be clusters. By default the `figure_scatterPlot` also outputs a straightline regression, although this may not be relevant for some graphs.  You can now analyse the raw data in any way you wish; if you want to covert it into a "tidy" format (which is more flexible for data handling), use the syntax `raw_data <- as_tibble(raw_data)`.
+
+# Scraping data from a small scatterplot
+Sometimes a figure from a paper might be relatively small, causing problems when scraping the data.  Load up and plot the following file from the Blackboard website:
+
+```{r small figure}
+small_figure <- figure_read("example_2_scatterPlot.jpg")
+figure_display(small_figure)
+```
+
+You can see that the image is a little bit more blurred, the axes are not as clear, and there is also text on the image (actually for the regression line, so you can easily compare what metagear calculates).  First, try the default `figure_scatterPlot` options:
+
+```{r small figure with defaults}
+raw_data2 <- figure_scatterPlot("example_2_scatterPlot.jpg")
+summary(raw_data2)
+```
+
+This is reasonable, but the clue that something is not quite right is in the x- and y-values, where the values are much higher than those shown in the graph. The maximum should be about 40 in the x-axis, not over 100, and similar problems arise in the y-axis.  You can specify the limits of the axes in the call to `figure_scatterPlot` via `X_min` `X_max` etc., and also tweak the `axis_thickness` option from its default of 5 down to 3 to account for the thin inklines on the two axes:
+
+```{r tweaked small plot}
+raw_data2 <- figure_scatterPlot("example_2_scatterPlot.jpg",
+                                axis_thickness = 2,
+                                X_min = 0,
+                                X_max = 50,
+                                Y_min = 0,
+                                Y_max = 70)
+summary(raw_data2)
+```
+
+The values for the extracted data now look more realistic, within the ranges of the axes.  There are lots of options available for the `figure_scatterPlot` function, to cope with different contrasts, graphs where the point symbols are squares or diamonds, points are large or small etc.  See the `?figure_scatterPlot` for full details.
+
+# Scraping data from bar charts
+Sometimes barchart are published, with means and error bars, but the raw data are not presented in tables.  Depending on the quality of the original figure, `metagear` might help you extract some or all of the data:
+
+```{r barplot}
+Kortum_and_Acymyan_2013_Fig4 <- figure_read("Kortum_and_Acymyan_2013_Fig4.jpg")
+figure_display(Kortum_and_Acymyan_2013_Fig4)
+```
+
+Let's now try scraping the means and 95% CI from the barplot:
+
+```{r scrape barplot}
+raw_data3 <- figure_barPlot("Kortum_and_Acymyan_2013_Fig4.jpg")
+print(raw_data3)
+```
+
+
+Whilst the `raw_data3` output contains the data, it is not easy to interpret, as it contains the mean, lower 95% CI, and upper 95% CI in triplets, as one long vector of numbers.  They are also hard to relate to the 14 codes labelled A to N in the original graph.  So we need to do some minor manipulations on the data:
+
+```{r reshape barplot data}
+statistic <- rep(c("mean", "lower_95CI", "upper_95CI"), 14)
+code      <- rep(LETTERS[1:14], each=3)
+raw_data3_lng <- tibble(bar_data = raw_data3, statistic=statistic, code=code)
+raw_data3_wde <- spread(raw_data3_lng, key=statistic, value=bar_data)
+print(raw_data3_wde)
+```
+
+You used the `gather` function in the first practical using R, to reshape "wide" data from many multiple columns into a smaller number of columns in a "long" format.  Here you use the opposite `spread` function, to reshape the data in `raw_data3_lng` which has 42 variables in 3 columns, into a more manageable `raw_data3_wde` which has 14 rows and 4 columns.  You will find it useful later on in your MSc to have a good grasp of how to use `gather` and `spread` to reshape messy data.
+
+# Capturing a graph from a paper
+You may at this point be wondering how to extract just one graph from a scientific paper.  There are several ways of doing this, but the easiest is simply to display the pdf, zoom into the graph you are interested in, and fire up the `Snipping Tool` that is installed on every Windows 7 and Windows 10 PC.  Then you can highlight a rectangle containing your graph and save it to a graphics file.
+
+Other R packages can be used to scrape data from graphs, including `digitize` and `digitizeR`.  The former allows more interaction from the user, whilst the latter also works for dot distribution maps.
