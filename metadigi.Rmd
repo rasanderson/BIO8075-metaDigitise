@@ -1,5 +1,5 @@
 ---
-title: "BIO8070 Meta-analysis graphics"
+title: "BIO8075 Meta-analysis graphics"
 subtitle: Extracting data from pdf graphs
 output:
   word_document:
@@ -13,43 +13,175 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Introduction
-We have covered some basic graphics in meta-analysis using the `metafor` package, including PRISMA plots to illustrate the processes in a systematic review, plus the use of "forest plots" to quickly show the results of a meta-analysis.  In this practical, we will use `metaDigitise` to extract numbers out of graphs, particularly scatter plots and bar charts.  This can be useful where a published paper has graphs, but does not provide the summary tables needed to carry out a meta-analysis. 
+We have covered some basic graphics in meta-analysis using the `metafor` package, including the use of "forest plots" to quickly show the results of a meta-analysis and "funnel plots" to detect publication bias. You have also covered PRISMA diagrams in the earlier part of this course. One challenge you will encounter is that often papers will publish graphs, but not the data used to create those graphs. In the past you had to use tracing paper and pencil to manually get the data, but now there are automated methods which (sometimes) make life easier. There are several R packages that do this, and we will focus on the `metaDigitise` package, which is relatively new and rapidly evolving. It can extract data from scatter plots and bar charts. It is very **interactive** in its usage, so you will have to play with it to understand its operation, as it is tricky to explain on a website or practical handout.
 
-# Installing metaDigitise package
+## Installing metaDigitise package
+You may have done this already, but if not, begin by installing the package from the default CRAN website.
 
 ```{r installing metagear, eval=FALSE}
 # Install metaDigitise as usual
 install.packages("metaDigitise")
-
 ```
 
 Once you have installed the packages, you can load them up, along with the metafor and tidyverse packages, with the `library` command as usual. 
 
 ```{r load metagear, warning=FALSE, message=FALSE}
-library(tidyverse)
 library(metafor)
 library(metaDigitise)
-library(here)
 ```
 
-# Scraping data from scatterplots using metaDigitise
-Sometimes a paper will contain a graph that has the raw data, but not in numerical form, and you need to be able to calculate for example the correlation coefficient, or the means and standard deviations.
+The overall aims of the practical are to get you comfortable with using `metaDigitise` to scrape data from published figures. You can use the Windows "snipping tool" to capture figures from screen, and some online journals allow you to download figures directly. `metaDigitise` can cope with .png, .jpeg, .tiff and .pdf formats. Specific objectives are to learn how to scrape data from:
 
-Download the files `Kam_et_al_2003_Fig2.jpeg`, `example_2_scatterPlot.jpg` and `Kortum_and_Acymyan_2013_Fig4.jpg` from Canvas and save them into a folder (directory) called `Figures` within your working directory.
+1. scatterplots
+2. scatterplots containing points representing different groups
+3. barplots with error bars
+4. scatterplots with error bars
 
-```{r load and display }
+**Before you begin**
+The `metaDigitise` package can bulk process images if you have stored them in sub-folders to represent different papers. See [the metaDigitise site](https://cran.r-project.org/web/packages/metaDigitise/vignettes/metaDigitise.html) for examples. We are going to use a simpler approach, as we only have 4 graphs to work with. Download the files `Kam_et_al_2003_Fig2.jpeg`, `example_2_scatterPlot.jpg` and `Kortum_and_Acymyan_2013_Fig4.jpg` from Canvas and save them into a folder (directory) called **`Figures`** within your RStudio project folder.
+
+# 1. Scraping data from scatterplots using metaDigitise
+Sometimes a paper will contain a graph that has the raw data, but not in numerical form, and you need to be able to calculate for example the correlation coefficient, or the means and standard deviations. After you have downloaded and saved your graphs into your `Figures` folder, run the following code: (**Note** this practical assumes you are using an R project, so your working directory is automatically correct. If you are not using a project, set your working folder manually via the  "Session" -> "Set working directory..." menu).
+
+
+```{r load_and_display, eval=FALSE}
 # metaDigitise works by looking at a folder (known as directory or dir) and accessing all the images within that folder
 # the package can access multiple image formats (`.png`, `.jpg`, `.tiff`, `.pdf`) and different types of figures
-#figure_data <- metaDigitise(dir = here("Figures"))
+figure_data <- metaDigitise(dir = "Figures")
 ```
 
-The first thing that will happen is you will be given a selection of options 1:3. Type `1` into the console and press enter to choose the option to process new images. Next you will be asked whether all the plot types within the directory are the same type, enter `d` to indicate they are different types and then choose `c` when asked whether the figures are wonky or horizontally oriented. Note that the response is case-sensitive, so ensure you are entering the letters in lower case.  
+The first thing that will happen is you will be given a selection of options 1:3 as below in the Console window:
 
-The first image we are going to work with is a scatter plot, so select `s` for the next option and type in the y and then the x axes labels. Note that the image is a little blurred, and there is also text on the image (actually for the regression line, so in this case you can easily compare what the data you extract calculates). Follow the instructions to first click on and then enter values for two points on the y and x axes. Neither axis is on the log scale so select `n` when asked about this. Finally, you will be asked to enter group identifiers if needed, in this case we don't but if the data points in the plot belonged to two or more different groups, for instance different habitat types, then we could label this here.  
+```{r menu1, eval=FALSE}
+Do you want to...
+
+1: Process new images
+2: Import existing data
+3: Edit existing data
+```
+
+Type `1` into the console and press enter to choose the option to process new images. Next you will be asked whether all the plot types within the directory are the same type, enter `d` to indicate they are different types. The first figure is displayed in the plot window:
+
+![](Figures/example_2_scatterPlot.jpg)
+
+You'll notice that as well as the data points there is also a regression line and some text, and a title, which we want to ignore if we are actually after the raw data. In reality, since the $R^2$ value is available in this figure, and you know the number of points, you wouldn't really need to digitise this one. However, it will be nice to compare how closely your estimated $R^$ matches the real one in the figure! The image is also a little blurred, so it will be a good test of the software.
+
+In the Console, you will see the following text displayed:
+
+```{r menu2, eval=FALSE}
+**** NEW PLOT ****
+
+
+mean_error and boxplots should be vertically orientated
+       _ 
+       |	
+  I.E. o    NOT  |-o-|
+       |
+       _
+
+If they are not then chose flip to correct this.
+
+If figures are wonky, chose rotate.
+
+Otherwise chose continue
+
+Flip, rotate or continue (f/r/c)
+```
+
+The figure is correctly oriented, therefore choose option  `c` for continue. Note that the response is case-sensitive, so ensure you are entering the letters in lower case. Next you get a menu that states:
+
+```{r menu3, eval=FALSE}
+Please specify the plot_type as either:
+
+ m: Mean and error
+ b: Box plot
+ s: Scatter plot 
+ h: Histogram
+
+```
+
+As you can see we have a scatter plot, so select `s` for the next option. You will see the statement:
+
+`What is the y variable?`
+
+and enter `Number fish species` as your answer. For the equivalent question about the horizontal axis, enter `Number algae species`. In the Console you will then see the following displayed:
+
+```{r, eval=FALSE}
+On the Figure, click IN ORDER: 
+      y1, y2 , x1, x2  
+
+
+    Step 1 ----> Click on known value on y axis - y1
+  |
+  |
+  |
+  |
+  y1
+  |_________________________
+
+
+    Step 2 ----> Click on another known value on y axis - y2
+  |
+  y2
+  |
+  |
+  |
+  |_________________________
+  
+ 
+    Step 3 ----> Click on known value on x axis - x1
+  |
+  |
+  |
+  |
+  |
+  |_____x1__________________
+
+
+    Step 4 ----> Click on another known value on x axis - x2
+  |
+  |
+  |
+  |
+  |
+  |___________________x2____
+
+```
+
+
+Follow the instructions to first click on and then enter values for two points on the y and then x axes. Try and be as accurate as possible, and it is often useful to pick values near the end of each axis e.g. (10, 60) and (10, 40) or (0, 70) and (0, 50) respectively. After clicking each pair of points, your graph will be highlighted in blue along the axis. After all four clicks, enter the relevant numbers in the Console. The numbers, and your own axis labels, will be super-imposed onto the plot. The next menu question is:
+
+```{r, eval=FALSE}
+Are any axes on a log scale? Enter n if none or combination of log axes (x/y/xy)
+```
+
+Neither axis is on the log scale so answer `n`. In case you made any mistakes you are given the option to re-calibrate your points:
+
+```{r, eval=FALSE}
+Re-calibrate? (y/n)
+```
+
+so assuming no errors type `n`. 
+
+Finally, you will be asked to enter group identifiers if needed, in this case we don't but if the data points in the plot belonged to two or more different groups, for instance different habitat types with two different symbols or colours for the points, then we could label this here. In our case, simple press the enter key.
 
 ![](Images/Img1.png)
 
-The next stage is to click on each of the data points within the figure, ignoring the regression line. You can resize your plot panel so that it takes up most of the screen and you can see all the points clearly. Try to center the cross hairs on the middle of the data point. You can click the points in any order, and they will be marked red once you have done so. If you make a mistake, don't worry - you will be asked if you want to redo any of the stages at the end of the process. Once you have selected each point, click in the red square in the bottom left corner of the image or select finish in the top right. If you've made any errors or missed any points (note that you should have n = 16 at the bottom of your plot panel) then you can correct this at this stage, otherwise enter `c` and then `f` to finish with this plot when prompted. If we know that the sample size is different to the number of data points we have managed to locate on the plot then we can enter this now, in this case enter `n`. Then continute (enter `y`) to the next plot.  
+The following message will be displayed in the RStudio Console:
+
+```{r, eval=FALSE}
+Group identifier:  
+
+
+Click on points you want to add.
+If you want to remove a point, or are finished with a group, 
+exit by clicking on red box in bottom left corner, then follow prompts
+
+```
+
+Now carefully click on each of the points in your graph. There are 15 points to click, with two quite difficult to see as they are close to the fitted line at the bottom left of the graph. Ignore the regression line but click on the two points that over-lie onto the regression line. You can resize your plot panel so that it takes up most of the screen and you can see all the points clearly. Try to center the cross hairs on the middle of the data point. You can click the points in any order, and they will be marked red once you have done so. If you make a mistake, don't worry - you will be asked if you want to redo any of the stages at the end of the process. Once you have selected each point, click in the red square in the bottom left corner of the image or select finish in the top right. If you've made any errors or missed any points (note that you should have n = 15 at the bottom of your plot panel) then you can correct this at this stage, otherwise enter `c` for Continue and then `f` to finish with this plot when prompted.
+
+If we know that the sample size is different to the number of data points we have managed to locate on the plot then we can enter this now, in this case enter `n`. Then continute (enter `y`) to the next plot.  
 
 ![](Images/Img2.png)
 
@@ -66,7 +198,7 @@ Let's now try extracting the means and 95% CI from this final image, a barplot. 
 
 ![](Images/Img3.png)
 
-Data extraction is complete, the data we've extracted is now in a dataframe called `figure_data`. If you look at you `Figures` directory you will see that there is now a folder called `caldat` which is where `metaDigitise` stores the information about plots you've already digitised, that means you could add new figures to this folder and rerun the `metaDigitise` function without having to redo the images you have already extracted from. You could edit the data you have already extracted, if for instance you had additional imformation (e.g. sample size) or you realised one of the axes was on log scale.
+Data extraction is complete, the data we've extracted is now in a dataframe called `figure_data`. Have a look at figure_dat If you look at you `Figures` directory you will see that there is now a folder called `caldat` which is where `metaDigitise` stores the information about plots you've already digitised, that means you could add new figures to this folder and rerun the `metaDigitise` function without having to redo the images you have already extracted from. You could edit the data you have already extracted, if for instance you had additional imformation (e.g. sample size) or you realised one of the axes was on log scale.
 
 <!---
 Whilst the `raw_data3` output contains the data, it is not easy to interpret, as it contains the mean, lower 95% CI, and upper 95% CI in triplets, as one long vector of numbers.  They are also hard to relate to the 14 codes labelled A to N in the original graph.  So we need to do some minor manipulations on the data:
