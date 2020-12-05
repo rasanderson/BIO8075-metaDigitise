@@ -1,11 +1,11 @@
 ---
-title: "BIO8075 Meta-analysis graphics"
-subtitle: Extracting data from pdf graphs
+title: "BIO8075 Meta-analysis data-scraping"
+subtitle: Extracting data from published graphs
 output:
+  html_document: default
+  pdf_document: default
   word_document:
      reference_docx: template.docx
-  pdf_document: default
-  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -32,17 +32,18 @@ library(metaDigitise)
 
 The overall aims of the practical are to get you comfortable with using `metaDigitise` to scrape data from published figures. You can use the Windows "snipping tool" to capture figures from screen, and some online journals allow you to download figures directly. `metaDigitise` can cope with .png, .jpeg, .tiff and .pdf formats. Specific objectives are to learn how to scrape data from:
 
-1. scatterplots
-2. scatterplots containing points representing different groups
-3. barplots with error bars
-4. scatterplots with error bars
+1. simple but blurred scatterplots and compare with expected data
+2. scatterplots containing large numbers of points representing different groups
+3. barplots with 95% confidence intervals
+
 
 **Before you begin**
 The `metaDigitise` package can bulk process images if you have stored them in sub-folders to represent different papers. See [the metaDigitise site](https://cran.r-project.org/web/packages/metaDigitise/vignettes/metaDigitise.html) for examples. We are going to use a simpler approach, as we only have 4 graphs to work with. Download the files `Kam_et_al_2003_Fig2.jpeg`, `example_2_scatterPlot.jpg` and `Kortum_and_Acymyan_2013_Fig4.jpg` from Canvas and save them into a folder (directory) called **`Figures`** within your RStudio project folder.
 
-# 1. Scraping data from scatterplots using metaDigitise
-Sometimes a paper will contain a graph that has the raw data, but not in numerical form, and you need to be able to calculate for example the correlation coefficient, or the means and standard deviations. After you have downloaded and saved your graphs into your `Figures` folder, run the following code: (**Note** this practical assumes you are using an R project, so your working directory is automatically correct. If you are not using a project, set your working folder manually via the  "Session" -> "Set working directory..." menu).
+# 1. Scraping data from scatterplots
+Sometimes a paper will contain a graph that has the raw data, but not in numerical form, and you need to be able to calculate for example the correlation coefficient, or the means and standard deviations. Download and save your graphs into your `Figures` folder, run the following code: (**Note** this practical assumes you are using an R project, so your working directory is automatically correct. If you are not using a project, set your working folder manually via the  "Session" -> "Set working directory..." menu).
 
+The `metaDigitise` package allows you to digitise multiple graphs stored in a folder, saving results in a `caldat` folder, but you can stop and resume graphs whenever you want.
 
 ```{r load_and_display, eval=FALSE}
 # metaDigitise works by looking at a folder (known as directory or dir) and accessing all the images within that folder
@@ -179,27 +180,146 @@ exit by clicking on red box in bottom left corner, then follow prompts
 
 ```
 
-Now carefully click on each of the points in your graph. There are 15 points to click, with two quite difficult to see as they are close to the fitted line at the bottom left of the graph. Ignore the regression line but click on the two points that over-lie onto the regression line. You can resize your plot panel so that it takes up most of the screen and you can see all the points clearly. Try to center the cross hairs on the middle of the data point. You can click the points in any order, and they will be marked red once you have done so. If you make a mistake, don't worry - you will be asked if you want to redo any of the stages at the end of the process. Once you have selected each point, click in the red square in the bottom left corner of the image or select finish in the top right. If you've made any errors or missed any points (note that you should have n = 15 at the bottom of your plot panel) then you can correct this at this stage, otherwise enter `c` for Continue and then `f` to finish with this plot when prompted.
-
-If we know that the sample size is different to the number of data points we have managed to locate on the plot then we can enter this now, in this case enter `n`. Then continute (enter `y`) to the next plot.  
+Now carefully click on each of the points in your graph. There are 15 points to click, with two quite difficult to see as they are close to the fitted line at the bottom left of the graph. Ignore the regression line but click on the two points that over-lie onto the regression line. You can resize your plot panel so that it takes up most of the screen and you can see all the points clearly. Try to center the cross hairs on the middle of the data point.
 
 ![](Images/Img2.png)
 
-Again we have a scatter plot with a fitted regression line and error bars, but we do not actually know the values for the regression; you might want to know the correlation coefficient for example, to undertake the type of analysis done in `metafor` in your earlier practical. This image is far less pixelated, we can see the points more clearly, though where there are points overlapping or close together will be more difficult to extract from. Follow the same steps to extract the data from this scatterplot, note that the original paper had a sample size of 51, so you can enter this value when prompted if you have not manage to locate all the points in the clusters.  
+You can click the points in any order, and they will be marked red once you have done so. If you make a mistake, don't worry - you will be asked if you want to redo any of the stages at the end of the process. Once you have selected each point, click in the red square in the bottom left corner of the image or select finish in the top right. The following message will be displayed:
+
+```{r, eval=FALSE}
+Add or Delete points to this group, or Continue? (a/d/c) 
+```
+
+Assuming you haven't made any major digitising errors, enter `c` to continue. If you've made a mistake use `a` or `d` to correct them. The next message would be relevant if you had multiple groups (e.g. scatterpoints with different symbols) but does not apply here, therefore enter `f` to finish the plot.
+
+```{r, eval=FALSE}
+Add group, Edit group, Delete group, or Finish plot? (a/e/d/f)
+```
+
+The next message relates to the number of sample points available. For me it is displaying:
+
+```{r, eval=FALSE}
+The estimated samples sizes for each group are:
+
+
+   
+15 
+
+The known sample size may differ from that in the extracted data
+ (e.g. if there are overlaying points)
+
+Do you want to enter a different sample size from that estimated? (y/n)
+```
+
+Depending on the complexity of the graph you are working with, it might not be easy to see all the points. If this number is known (e.g. from the Methods of the paper) you can enter it here, and `metaDigitise` will adjust the estimated errors in your data accordingly. Fortunately I've managed to digitise all the points, so I am entering `n` to this menu.
+
+We have now finished digitising the first graph, and `metaDigitise` has detected that there are two more to complete. It responds with the message:
+
+```{r, eval=FALSE}
+Do you want continue: 2 plots out of 3 plots remaining (y/n)
+```
+
+You could automatically continue onto the next graph by entering `y`, but let's assume you want a well-earned coffee break. Select `n` and we can look at the results so far. We saved the data in `figure_data` so display it in the Console window:
+
+```{r, eval=FALSE}
+figure_data
+```
+
+There are two rows of output, representing the x- and y-axes of your graph. If you had two groups of points, you would have 4 rows etc. The mean, sd, se for each axis is given. As we only have one group (which we didn't both naming) the group_id column is empty. The correlation coefficient `r` is given; this is of course identical for both rows (one group), and for me it is 0.7199; you will have a slightly different value. Recall that the R-squared value was printed on the graph at `0.5195`; how close is our value: $0.7199^2$ = `0.7199^2` = `0.5183` Pretty good!
+
+Strictly-speaking, we did not really need to digitise thise graph, as the fitted line and R-squared were already available, but this demonstrates that you can obtain surprisingly accurate results using the software.
+
+
+# 2. Scatterplot with lots of points
+Again we have a scatter plot with a fitted regression line, but we do not actually know the values for the regression; you might want to know the correlation coefficient for example, to undertake the type of analysis done in `metafor` in your earlier practical. This image is far less pixelated, we can see the points more clearly, though where there are points overlapping or close together will be more difficult to extract from. Follow the same steps to extract the data from this scatterplot, **note that the original paper had a sample size of 51**, so you can enter this value when prompted if you have not manage to locate all the points.
+
+You can continue where you left off, by entering
+
+```{r, eval=FALSE}
+figure_data <- metaDigitise(dir = "Figures")
+```
+
+Don't worry, you won't lose your original data, which is actually saved in a subfolder of your `Figures` folder called `caldat`. Select `1` to process new images, and indicate that the plot types are different with `d`. The next plot from Kam et al will be displayed automatically. Digitise it as before, but when it comes to the number of points it is unlikely you will have identified 51. Enter the correct value manually.
+
+![](Images/img51.png)
+
+My attempt at digitising these data is shown above; I ended up with 49 points digitised, so manually updated the sample size when prompted to 51. When you receive the following prompt:
+
+```{r, eval=FALSE}
+Do you want continue: 1 plots out of 2 plots remaining (y/n)
+```
+
+Enter `n` so that you can look at your `figure_data` table. You can see that two more rows have been added, for the new figure, with the relevant means, sds etc. The value for the number of samples, under column `n`, is showing as 51 not the slightly incorrect lower number that I digitised. The sd and se have been adjusted to account for this.
 
 <!---
 You can now analyse the raw data in any way you wish; if you want to covert it into a "tidy" format (which is more flexible for data handling), use the syntax `raw_data <- as_tibble(raw_data)`.
 --->
 
-# Scraping data from bar charts
+# 3. Scraping data from bar charts +/- 95% CI
 Sometimes barchart are published, with means and error bars, but the raw data are not presented in tables.  Depending on the quality of the original figure, you might be able to extract some or all of the data.
+`
+Let's now try extracting the means and 95% CI from this final image, a barplot. We will add the results to our existing `figure_data` dataset:
 
-Let's now try extracting the means and 95% CI from this final image, a barplot. In this case select `m` when asked for the plot type. Follow the data extraction flow - note that this time you are only asked to enter information for the y axis. We're asked to enter sample sizes, in this case we don't know. In this case we can enter a group identifier as the ballot letter for each of the bar plots - starting with A. Once you reach the data extraction stage, click first on the top of the 95% CI whisker, and then on the top of the bar. Once you've extracted from the first bar, enter `a` to add a group and move through the ballot letters. Once you've finished extracting from the plot you will be asked to select the type of error for this plot, enter `CI95`.  
+```{r, eval=FALSE}
+figure_data <- metaDigitise(dir = "Figures")
+```
+
+Select option `1` to `Process new images` and `d` for different plot types. A bar plot will be displayed, and enter `c` to continue as it does not need to be flipped etc. When you see the menu:
+
+```{r, eval=FALSE}
+Please specify the plot_type as either:
+
+ m: Mean and error
+ b: Box plot
+ s: Scatter plot 
+ h: Histogram
+```
+
+select `m` when asked for the plot type. Follow the data extraction flow - note that this time you are only asked to enter information for the y axis. We're asked to enter sample sizes, in this case we don't know. **Note**: Ideally use publications where you know the sample sizes, as you can do much more useful meta-analyses with them.
+
+In this case we can enter a group identifier as the ballot letter for each of the bar plots - starting with A. Once you reach the data extraction stage, click first on the top of the 95% CI whisker, and then on the top of the bar. Once you've extracted from the first bar, enter `a` to add a group and move onto B from the ballot letters.
+
+The top of the error bar will be shown with a open circle and the mean a closed red circle. Each bar has a red label to the right of the bar, e.g. `A (NA)` for the first bar. The `NA` refers to the fact that we do not know the sample sizes. Once you've finished extracting from the plot, by typicing `f` you will be asked to select the type of error for this plot, enter `CI95`.  
 
 ![](Images/Img3.png)
 
-Data extraction is complete, the data we've extracted is now in a dataframe called `figure_data`. Have a look at figure_dat If you look at you `Figures` directory you will see that there is now a folder called `caldat` which is where `metaDigitise` stores the information about plots you've already digitised, that means you could add new figures to this folder and rerun the `metaDigitise` function without having to redo the images you have already extracted from. You could edit the data you have already extracted, if for instance you had additional imformation (e.g. sample size) or you realised one of the axes was on log scale.
+Data extraction is complete, the data we've extracted is now in a dataframe called `figure_data`. Have a look at `figure_data` and notice the extra rows from your barplot.
 
+If you look at you `Figures` directory you will see that there is now a folder called `caldat` which is where `metaDigitise` stores the information about plots you've already digitised, that means you could add new figures to this folder and rerun the `metaDigitise` function without having to redo the images you have already extracted from. You could edit the data you have already extracted, if for instance you had additional imformation (e.g. sample size) or you realised one of the axes was on log scale. If you are in a new RStudio session, simply enter:
+
+```{r, eval=FALSE}
+figure_data <- metaDigitise(dir = "Figures")
+```
+
+and the following screen will be displayed, but choose option 2.
+
+```{r, eval=FALSE}
+Do you want to...
+
+1: Process new images
+2: Import existing data
+3: Edit existing data
+
+Selection: 2
+```
+
+You can import all the data, or just information for one graph. You can also access the raw data, for example the individual x- and y-coordinates from your scatterplot. Simply add the option `summary = FALSE` when you import the data:
+
+```{r, eval=FALSE}
+figure_data <- metaDigitise(dir = "Figures", summary=FALSE)
+```
+
+Do this for your second graph, `2. Kam_et_al_2003_Fig2`, and have a look at `figure_data`. The first few rows will contain:
+
+```{r, eval=FALSE}
+   id         x         y group col pch y_variable x_variable
+1      58.07692  62.28571     1 red  19       ADMR  Body mass
+2      56.15385  63.42857     1 red  19       ADMR  Body mass
+3      56.92308  68.00000     1 red  19       ADMR  Body mass
+4      53.84615  66.85714     1 red  19       ADMR  Body mass
+```
+
+so you have access to the individual x and y coordinates. We only had one group of data here, but it would give the information in the `group` column if needed for multiple groups.
 <!---
 Whilst the `raw_data3` output contains the data, it is not easy to interpret, as it contains the mean, lower 95% CI, and upper 95% CI in triplets, as one long vector of numbers.  They are also hard to relate to the 14 codes labelled A to N in the original graph.  So we need to do some minor manipulations on the data:
 
